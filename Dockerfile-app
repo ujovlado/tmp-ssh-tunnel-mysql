@@ -1,0 +1,5 @@
+FROM mysql:5.7
+ENV DEBIAN_FRONTEND noninteractive
+
+RUN apt-get update -q \
+  && apt-get install ssh -y --no-install-recommends

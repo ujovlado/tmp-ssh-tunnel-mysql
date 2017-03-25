@@ -1,0 +1,5 @@
+FROM debian:8
+ENV DEBIAN_FRONTEND noninteractive
+
+RUN apt-get update -q \
+  && apt-get install openssh-server -y --no-install-recommends

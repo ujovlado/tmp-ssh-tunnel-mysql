@@ -1,0 +1,47 @@
+version: "2"
+
+services:
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile-app
+    environment:
+      - PRIVATE_KEY_BASE64
+    links:
+      - app-hidden
+    command: >
+             sh -c '
+             sleep 5
+             && echo $PRIVATE_KEY_BASE64 | base64 -d > /root/private.key
+             && chmod 600 /root/private.key
+             && ssh root@app-hidden -L 3306:mysql-behind-ssh:3306 -i /root/private.key -fN -o ExitOnForwardFailure=yes -o StrictHostKeyChecking=no
+             && echo "SELECT 1+1;" | mysql -h127.0.0.1 -P3306 -utest -ptest test
+             '
+  mysql:
+    image: mysql:5.7
+    volumes:
+      - ./docker/.mysql-datadir/data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: test
+      MYSQL_USER: test
+      MYSQL_PASSWORD: test
+
+  app-hidden:
+    build:
+      context: .
+      dockerfile: Dockerfile-app-hidden
+    environment:
+      - PUBLIC_KEY_BASE64
+    links:
+      - mysql:mysql-behind-ssh
+    command: >
+             sh -c '
+             touch /root/some-file
+             && mkdir -p /root/.ssh/
+             && echo $PUBLIC_KEY_BASE64 | base64 -d > /root/.ssh/authorized_keys
+             && chmod 600 /root/.ssh/authorized_keys
+             && service ssh start
+             && tail -f /root/some-file
+             '
